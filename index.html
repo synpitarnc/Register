@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>မှတ်ပုံတင်ခြင်း</title>
+<style>
+  :root{
+    --primary:#0f766e;
+    --primary-dark:#0b5750;
+    --bg:#f4f6f7;
+    --card:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --error:#dc2626;
+    --success:#16a34a;
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family:"Padauk","Noto Sans Myanmar","Myanmar Text",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+    padding:calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    min-height:100vh;
+    min-height:100dvh;
+  }
+  .card{
+    background:var(--card);
+    width:100%;
+    max-width:480px;
+    border-radius:16px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.08);
+    padding:28px 24px;
+  }
+  h1{
+    font-size:22px;
+    margin:0 0 4px;
+    color:var(--primary-dark);
+  }
+  p.subtitle{
+    margin:0 0 24px;
+    color:var(--muted);
+    font-size:14px;
+  }
+  label{
+    display:block;
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:6px;
+    margin-top:16px;
+  }
+  input, textarea{
+    width:100%;
+    padding:13px 14px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    font-size:16px;
+    font-family:inherit;
+    background:#fafafa;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  input:focus, textarea:focus{
+    outline:none;
+    border-color:var(--primary);
+    background:#fff;
+  }
+  textarea{ resize:vertical; min-height:70px; }
+  button{
+    margin-top:24px;
+    width:100%;
+    padding:14px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    -webkit-appearance:none;
+    appearance:none;
+    touch-action:manipulation;
+    min-height:48px;
+  }
+  button:disabled{ opacity:0.6; cursor:not-allowed; }
+  button:hover:not(:disabled){ background:var(--primary-dark); }
+  .msg{
+    margin-top:16px;
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:14px;
+    display:none;
+  }
+  .msg.success{ background:#dcfce7; color:var(--success); display:block; }
+  .msg.error{ background:#fee2e2; color:var(--error); display:block; }
+  .required{ color:var(--error); }
+
+  @media (min-width:700px){
+    .card{ padding:36px 44px; }
+  }
+  @media (max-width:340px){
+    .card{ padding:20px 14px; }
+    h1{ font-size:20px; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>မှတ်ပုံတင်ခြင်း</h1>
+    <p class="subtitle">အောက်ပါအချက်အလက်များကို ဖြည့်စွက်ပေးပါ</p>
+
+    <form id="regForm">
+      <label for="name">အမည် <span class="required">*</span></label>
+      <input type="text" id="name" name="name" required autocomplete="name" placeholder="အမည်အပြည့်အစုံ">
+
+      <label for="phone">ဖုန်းနံပါတ် <span class="required">*</span></label>
+      <input type="tel" id="phone" name="phone" required autocomplete="tel" inputmode="tel" placeholder="09xxxxxxxxx">
+
+      <label for="address">နေရပ်လိပ်စာ <span class="required">*</span></label>
+      <textarea id="address" name="address" required autocomplete="street-address" placeholder="နေရပ်လိပ်စာအပြည့်အစုံ"></textarea>
+
+      <label for="contactTime">ဆက်သွယ်ရန် အဆင်ပြေသောအချိန်</label>
+      <input type="text" id="contactTime" name="contactTime" placeholder="ဥပမာ - နံနက် ၉ နာရီ မှ ၁၁ နာရီ">
+
+      <button type="submit" id="submitBtn">တင်သွင်းမည်</button>
+      <div class="msg" id="msgBox"></div>
+    </form>
+  </div>
+
+<script>
+  // ============================================================
+  // ▼▼▼ ဒီနေရာတွင် Google Apps Script Web App URL ကို ထည့်ပါ ▼▼▼
+  // PUT YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (from Code.gs deployment):
+  const GAS_URL = "PUT_YOUR_GAS_DEPLOYMENT_URL_HERE";
+  // ▲▲▲ ▲▲▲ ▲▲▲
+  // ============================================================
+
+  const form = document.getElementById('regForm');
+  const btn = document.getElementById('submitBtn');
+  const msgBox = document.getElementById('msgBox');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    msgBox.className = 'msg';
+    msgBox.textContent = '';
+
+    if (GAS_URL.indexOf('PUT_YOUR_GAS') === 0) {
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'GAS_URL ကို code ထဲတွင် ဦးစွာ ထည့်ပေးပါ (<script> အထဲက comment ကြည့်ပါ)';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'ပို့နေသည်...';
+
+    const formData = new FormData(form);
+
+    // NOTE: mode:'no-cors' means we cannot read the actual server response
+    // (Google Apps Script + static hosting like GitHub Pages = cross-origin).
+    // The request still reaches the Apps Script and writes to the Sheet;
+    // we just show an optimistic success message once fetch resolves.
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: formData
+    })
+      .then(function () {
+        msgBox.className = 'msg success';
+        msgBox.textContent = 'မှတ်ပုံတင်ခြင်း အောင်မြင်ပါသည်။ ကျေးဇူးတင်ပါသည်။';
+        form.reset();
+      })
+      .catch(function (err) {
+        msgBox.className = 'msg error';
+        msgBox.textContent = 'အမှားတစ်ခုဖြစ်ပွားပါသည်။ ထပ်မံကြိုးစားပေးပါ။';
+        console.error(err);
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = 'တင်သွင်းမည်';
+      });
+  });
+</script>
+</body>
+</html>
