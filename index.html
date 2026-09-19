@@ -101,12 +101,78 @@
   .msg.error{ background:#fee2e2; color:var(--error); display:block; }
   .required{ color:var(--error); }
 
+  /* Success popup: stays open until the customer taps the close button */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(15,23,42,0.55);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    background:#fff;
+    border-radius:16px;
+    max-width:420px;
+    width:100%;
+    padding:28px 24px;
+    text-align:center;
+    box-shadow:0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal-icon{
+    width:56px;
+    height:56px;
+    margin:0 auto 16px;
+    border-radius:50%;
+    background:#dcfce7;
+    color:var(--success);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    font-weight:700;
+  }
+  .modal-title{
+    font-size:19px;
+    font-weight:700;
+    color:var(--primary-dark);
+    margin:0 0 12px;
+  }
+  .modal-text{
+    font-size:14px;
+    color:var(--text);
+    line-height:1.7;
+    margin:0 0 22px;
+    text-align:left;
+  }
+  .modal-close-btn{
+    width:100%;
+    padding:13px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    -webkit-appearance:none;
+    appearance:none;
+    touch-action:manipulation;
+    min-height:48px;
+  }
+  .modal-close-btn:hover{ background:var(--primary-dark); }
+
   @media (min-width:700px){
     .card{ padding:36px 44px; }
   }
   @media (max-width:340px){
     .card{ padding:20px 14px; }
     h1{ font-size:20px; }
+    .modal-box{ padding:22px 18px; }
   }
 </style>
 </head>
@@ -133,17 +199,47 @@
     </form>
   </div>
 
+  <!-- Success popup: shown after registration, stays open until the customer taps ပိတ်မည် (Close) -->
+  <div class="modal-overlay" id="successModal" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-icon">&#10003;</div>
+      <h2 class="modal-title" id="modalTitle">မှတ်ပုံတင်ခြင်း အောင်မြင်ပါသည်</h2>
+      <p class="modal-text">
+        ကျေးဇူးတင်ပါသည်။ သင့်အချက်အလက်များကို လက်ခံရရှိပါပြီ။<br><br>
+        တန်းစီစောင့်ဆိုင်းရန် လိုအပ်နိုင်ပါသည် (ခန့်မှန်းခြေ ၁ လ)။ အလှည့်ကျပါက
+        ဝန်ထမ်းမှ အမြန်ဆုံး ပြန်လည်ဆက်သွယ်ပါမည်။ အဆင်မပြေမှုများအတွက်
+        တောင်းပန်အပ်ပါသည်။
+      </p>
+      <button type="button" id="modalCloseBtn" class="modal-close-btn">ပိတ်မည်</button>
+    </div>
+  </div>
+
 <script>
   // ============================================================
   // ▼▼▼ ဒီနေရာတွင် Google Apps Script Web App URL ကို ထည့်ပါ ▼▼▼
   // PUT YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (from Code.gs deployment):
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbw1QWC3xyf72DUHAlz_RwmCd8Y22cW4SrNN5dynpk29DHx_N03RLNIwixmpKpeB_WTBVw/exec";
+  const GAS_URL = "PUT_YOUR_GAS_DEPLOYMENT_URL_HERE";
   // ▲▲▲ ▲▲▲ ▲▲▲
   // ============================================================
 
   const form = document.getElementById('regForm');
   const btn = document.getElementById('submitBtn');
   const msgBox = document.getElementById('msgBox');
+  const successModal = document.getElementById('successModal');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+  function openSuccessModal() {
+    successModal.classList.add('open');
+    successModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSuccessModal() {
+    successModal.classList.remove('open');
+    successModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  // ปิดได้เฉพาะตอนกดปุ่ม "ปิดမည်" เท่านั้น (ไม่ปิดเมื่อคลิกพื้นหลัง) ตามที่ต้องการให้ค้างไว้จนกว่าลูกค้าจะกดปิด
+  modalCloseBtn.addEventListener('click', closeSuccessModal);
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -171,9 +267,8 @@
       body: formData
     })
       .then(function () {
-        msgBox.className = 'msg success';
-        msgBox.textContent = 'မှတ်ပုံတင်ခြင်း အောင်မြင်ပါသည်။ ကျေးဇူးတင်ပါသည်။';
         form.reset();
+        openSuccessModal();
       })
       .catch(function (err) {
         msgBox.className = 'msg error';
