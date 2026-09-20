@@ -71,6 +71,28 @@
     background:#fff;
   }
   textarea{ resize:vertical; min-height:70px; }
+  .time-range{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+  }
+  .time-field{ flex:1; min-width:0; }
+  .time-field-label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .time-field input[type="time"]{ width:100%; }
+  .time-range-sep{
+    color:var(--muted);
+    font-size:14px;
+    padding-bottom:13px;
+  }
+  @media (max-width:380px){
+    .time-range{ flex-direction:column; align-items:stretch; gap:12px; }
+    .time-range-sep{ display:none; }
+  }
   button{
     margin-top:24px;
     width:100%;
@@ -191,8 +213,19 @@
       <label for="address">နေရပ်လိပ်စာ <span class="required">*</span></label>
       <textarea id="address" name="address" required autocomplete="street-address" placeholder="နေရပ်လိပ်စာအပြည့်အစုံ"></textarea>
 
-      <label for="contactTime">ဆက်သွယ်ရန် အဆင်ပြေသောအချိန်</label>
-      <input type="text" id="contactTime" name="contactTime" placeholder="ဥပမာ - နံနက် ၉ နာရီ မှ ၁၁ နာရီ">
+      <label>ဆက်သွယ်ရန် အဆင်ပြေသောအချိန်</label>
+      <div class="time-range">
+        <div class="time-field">
+          <span class="time-field-label">မှ</span>
+          <input type="time" id="contactTimeFrom">
+        </div>
+        <span class="time-range-sep">—</span>
+        <div class="time-field">
+          <span class="time-field-label">အထိ</span>
+          <input type="time" id="contactTimeTo">
+        </div>
+      </div>
+      <input type="hidden" id="contactTime" name="contactTime">
 
       <button type="submit" id="submitBtn">တင်သွင်းမည်</button>
       <div class="msg" id="msgBox"></div>
@@ -245,6 +278,23 @@
     e.preventDefault();
     msgBox.className = 'msg';
     msgBox.textContent = '';
+
+    // ช่วงเวลาที่สะดวกติดต่อ: รวมค่า "မှ" (from) และ "အထိ" (to) เป็นข้อความเดียว
+    // ก่อนส่ง เพื่อให้ backend (Code.gs) ยังคงรับฟิลด์ contactTime แบบเดิม ไม่ต้องแก้ Code.gs
+    var fromVal = document.getElementById('contactTimeFrom').value;
+    var toVal = document.getElementById('contactTimeTo').value;
+
+    if ((fromVal && !toVal) || (!fromVal && toVal)) {
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'ကျေးဇူးပြု၍ အချိန် "မှ" နှင့် "အထိ" နှစ်ခုစလုံး ဖြည့်ပါ (သို့) မဖြည့်ဘဲ ချန်ထားပါ';
+      return;
+    }
+    if (fromVal && toVal && toVal <= fromVal) {
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'အချိန် "အထိ" သည် အချိန် "မှ" ထက် နောက်ကျရပါမည်';
+      return;
+    }
+    document.getElementById('contactTime').value = (fromVal && toVal) ? (fromVal + ' - ' + toVal) : '';
 
     if (GAS_URL.indexOf('PUT_YOUR_GAS') === 0) {
       msgBox.className = 'msg error';
