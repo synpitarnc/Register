@@ -71,6 +71,14 @@
     background:#fff;
   }
   textarea{ resize:vertical; min-height:70px; }
+  input.invalid{ border-color:var(--error); background:#fff5f5; }
+  .field-error{
+    display:none;
+    margin-top:6px;
+    font-size:13px;
+    color:var(--error);
+  }
+  .field-error.show{ display:block; }
   .time-range{
     display:flex;
     align-items:flex-end;
@@ -207,8 +215,9 @@
       <label for="name">အမည် <span class="required">*</span></label>
       <input type="text" id="name" name="name" required autocomplete="name" placeholder="အမည်အပြည့်အစုံ">
 
-      <label for="phone">ဖုန်းနံပါတ် ( ချေးငွေလျှောက်ထားဖူးတဲ့ ဖုန်းနံပါတ်သာ ဖြည့်ပေးပါရန် )  <span class="required">*</span></label>
-      <input type="tel" id="phone" name="phone" required autocomplete="tel" inputmode="tel" placeholder="09xxxxxxxxx">
+      <label for="phone">ဖုန်းနံပါတ် <span class="required">*</span></label>
+      <input type="tel" id="phone" name="phone" required autocomplete="tel" inputmode="numeric" maxlength="10" placeholder="09xxxxxxxx">
+      <div class="field-error" id="phoneError" role="alert"></div>
 
       <label for="address">နေရပ်လိပ်စာ <span class="required">*</span></label>
       <textarea id="address" name="address" required autocomplete="street-address" placeholder="နေရပ်လိပ်စာအပြည့်အစုံ"></textarea>
@@ -251,7 +260,7 @@
   // ============================================================
   // ▼▼▼ ဒီနေရာတွင် Google Apps Script Web App URL ကို ထည့်ပါ ▼▼▼
   // PUT YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (from Code.gs deployment):
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbygdppxkR2iO1h6KrNlvVu4a2vGqlZVCyDsCMYNDOxvgnqqPLvQzzCwtEOjhZTtI1TLug/exec";
+  const GAS_URL = "PUT_YOUR_GAS_DEPLOYMENT_URL_HERE";
   // ▲▲▲ ▲▲▲ ▲▲▲
   // ============================================================
 
@@ -274,10 +283,59 @@
   // ปิดได้เฉพาะตอนกดปุ่ม "ปิดမည်" เท่านั้น (ไม่ปิดเมื่อคลิกพื้นหลัง) ตามที่ต้องการให้ค้างไว้จนกว่าลูกค้าจะกดปิด
   modalCloseBtn.addEventListener('click', closeSuccessModal);
 
+  // ---- ဖုန်းနံပါတ် (Phone): ဂဏန်း ၁၀ လုံးတိတိသာ ----
+  // เบอร์ต้องเป็นตัวเลข 10 หลักพอดี: พิมพ์ได้เฉพาะตัวเลข (เลขพม่า ၀-၉ จะถูกแปลงเป็น 0-9),
+  // เกิน 10 หลักจะตัดทิ้งและแจ้งเตือน, ไม่ครบ 10 หลักจะแจ้งเตือนและส่งฟอร์มไม่ได้
+  const PHONE_LEN = 10;
+  const phoneInput = document.getElementById('phone');
+  const phoneError = document.getElementById('phoneError');
+  const MSG_PHONE_LONG = 'ဖုန်းနံပါတ်သည် ဂဏန်း ၁၀ လုံးထက် မကျော်ရပါ';
+
+  function msgPhoneShort(n) {
+    return 'ဖုန်းနံပါတ်သည် ဂဏန်း ၁၀ လုံး ပြည့်စုံရပါမည် (ယခု ' + n + ' လုံးသာ ရှိသေးသည်)';
+  }
+  function showPhoneError(msg) {
+    phoneError.textContent = msg;
+    phoneError.classList.add('show');
+    phoneInput.classList.add('invalid');
+  }
+  function clearPhoneError() {
+    phoneError.textContent = '';
+    phoneError.classList.remove('show');
+    phoneInput.classList.remove('invalid');
+  }
+  function toAsciiDigits(s) {
+    return s.replace(/[၀-၉]/g, function (c) { return String(c.charCodeAt(0) - 0x1040); });
+  }
+  phoneInput.addEventListener('input', function () {
+    var digits = toAsciiDigits(phoneInput.value).replace(/\D/g, '');
+    var tooLong = digits.length > PHONE_LEN;
+    if (tooLong) { digits = digits.slice(0, PHONE_LEN); }
+    phoneInput.value = digits;
+
+    if (tooLong) {
+      showPhoneError(MSG_PHONE_LONG);
+    } else if (digits.length > 0 && digits.length < PHONE_LEN) {
+      showPhoneError(msgPhoneShort(digits.length));
+    } else {
+      clearPhoneError();
+    }
+  });
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     msgBox.className = 'msg';
     msgBox.textContent = '';
+
+    // ตรวจเบอร์โทร: ต้องเป็นตัวเลข 10 หลักพอดี ไม่เช่นนั้นไม่ให้ส่ง
+    var phoneDigits = toAsciiDigits(phoneInput.value).replace(/\D/g, '');
+    if (phoneDigits.length !== PHONE_LEN) {
+      showPhoneError(phoneDigits.length > PHONE_LEN ? MSG_PHONE_LONG : msgPhoneShort(phoneDigits.length));
+      phoneInput.focus();
+      return;
+    }
+    phoneInput.value = phoneDigits;
+    clearPhoneError();
 
     // ช่วงเวลาที่สะดวกติดต่อ: รวมค่า "မှ" (from) และ "အထိ" (to) เป็นข้อความเดียว
     // ก่อนส่ง เพื่อให้ backend (Code.gs) ยังคงรับฟิลด์ contactTime แบบเดิม ไม่ต้องแก้ Code.gs
